@@ -278,7 +278,6 @@ CREATE TABLE uiapi.output (
             'event_loss',
             'event_loss_curve',
             'gmf',
-            'gmf_scenario',
             'hazard_curve',
             'hazard_curve_multi',
             'hazard_map',

@@ -24,7 +24,7 @@ from openquake.engine.db import models
 
 
 class ScenarioDamageRiskCase4TestCase(risk.FixtureBasedQATestCase):
-    output_type = 'gmf_scenario'
+    output_type = 'gmf'
     hazard_calculation_fixture = 'Scenario Damage QA Test 4'
 
     @attr('qa', 'risk', 'scenario_damage')

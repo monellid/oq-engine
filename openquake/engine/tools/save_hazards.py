@@ -212,7 +212,6 @@ class HazardDumper(object):
             'hazard_curve_multi': 2,
             'ses': 1,
             'gmf': 2,
-            'gmf_scenario': 2
         }
         outputs = sorted(outputs, key=lambda o: ordering[o[0]])
 
@@ -221,7 +220,8 @@ class HazardDumper(object):
         all_outs = [output_id for _output_type, output_id in outputs]
         self.output(_tuplestr(all_outs))
 
-        for output_type, output_group in itertools.groupby(outputs, lambda x: x[0]):
+        for output_type, output_group in itertools.groupby(
+                outputs, lambda x: x[0]):
             output_ids = [output_id for output_type, output_id in output_group]
             ids = _tuplestr(output_ids)
             print "Dumping %s %s in %s" % (output_type, ids, self.outdir)

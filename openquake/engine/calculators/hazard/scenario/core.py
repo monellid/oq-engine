@@ -39,10 +39,20 @@ AVAILABLE_GSIMS = openquake.hazardlib.gsim.get_available_gsims()
 
 
 @tasks.oqtask
-def gmfs(job_id, seeds, sitecol, rupture, gmf_id, task_no):
+def gmfs(job_id, rup_seeds, sitecol, rupture, gmf_id, task_no):
     """
-    A celery task wrapper function around :func:`compute_gmfs`.
-    See :func:`compute_gmfs` for parameter definitions.
+    :param int job_id:
+        the current job ID
+    :param rup_seeds:
+        a list pairs (rupture_id, seed)
+    :param sitecol:
+        the current SiteCollection
+    :param rupture:
+        the current rupture
+    :param int gmf_id:
+        the id of the Gmf output
+    :param int task_no:
+        task ordinal
     """
     hc = models.HazardCalculation.objects.get(oqjob=job_id)
     # distinct is here to make sure that IMTs such as
@@ -57,18 +67,19 @@ def gmfs(job_id, seeds, sitecol, rupture, gmf_id, task_no):
     # insert GmfData in blocks of 1000 sites
 
     with EnginePerformanceMonitor('computing gmfs', job_id, gmfs):
-        for task_seed in seeds:
-            numpy.random.seed(task_seed)
+        for rup_id, seed in rup_seeds:
+            numpy.random.seed(seed)
             gmf_dict = ground_motion_fields(
                 rupture, sitecol, imts, gsim, hc.truncation_level,
                 realizations, correlation_model)
             for imt in imts:
                 for site_id, gmv in zip(sitecol.sids, gmf_dict[imt]):
                     # float is needed below to convert 1x1 matrices
-                    cache[site_id, imt].append(float(gmv))
+                    cache[site_id, imt].append((float(gmv), rup_id))
 
     with EnginePerformanceMonitor('saving gmfs', job_id, gmfs):
         for site_id, imt in cache:
+            gmvs, rupture_ids = zip(*cache[site_id, imt])
             inserter.add(
                 models.GmfData(
                     gmf_id=gmf_id,
@@ -77,8 +88,8 @@ def gmfs(job_id, seeds, sitecol, rupture, gmf_id, task_no):
                     sa_period=imt[1],
                     sa_damping=imt[2],
                     site_id=site_id,
-                    rupture_ids=None,
-                    gmvs=cache[site_id, imt]))
+                    rupture_ids=rupture_ids,
+                    gmvs=gmvs))
         inserter.flush()
 
 
@@ -138,13 +149,13 @@ class ScenarioHazardCalculator(haz_general.BaseHazardCalculator):
         output = models.Output.objects.create(
             oq_job=self.job,
             display_name="GMF",
-            output_type="gmf_scenario")
+            output_type="gmf")
         self.gmf = models.Gmf.objects.create(output=output)
 
         # creating seeds
         rnd = random.Random()
         rnd.seed(self.hc.random_seed)
-        self.all_seeds = [
+        all_seeds = [
             rnd.randint(0, models.MAX_SINT_32)
             for _ in xrange(self.hc.number_of_ground_motion_fields)]
 
@@ -152,12 +163,12 @@ class ScenarioHazardCalculator(haz_general.BaseHazardCalculator):
             prob_rup = models.ProbabilisticRupture.create(
                 self.rupture, self.ses_coll)
             inserter = writer.CacheInserter(models.SESRupture, 100000)
-            for ses_idx, seed in enumerate(self.all_seeds):
-                inserter.add(
-                    models.SESRupture(
-                        ses_id=1, rupture=prob_rup,
-                        tag='scenario-%010d' % ses_idx,  seed=seed))
-            inserter.flush()
+            rup_ids = inserter.saveall([
+                models.SESRupture(
+                    ses_id=1, rupture=prob_rup,
+                    tag='scenario-%010d' % i,  seed=seed)
+                for i, seed in enumerate(all_seeds)])
+        self.rup_seed_pairs = zip(rup_ids, all_seeds)
 
     def task_arg_gen(self):
         """
@@ -168,6 +179,6 @@ class ScenarioHazardCalculator(haz_general.BaseHazardCalculator):
         anyway.
         """
         ss = general.SequenceSplitter(self.concurrent_tasks())
-        for task_no, task_seeds in enumerate(ss.split(self.all_seeds)):
-            yield (self.job.id, task_seeds, self.sites, self.rupture,
+        for task_no, rup_seeds in enumerate(ss.split(self.rup_seed_pairs)):
+            yield (self.job.id, rup_seeds, self.sites, self.rupture,
                    self.gmf.id, task_no)

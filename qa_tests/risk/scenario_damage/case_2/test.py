@@ -20,7 +20,7 @@ from qa_tests import risk
 
 
 class ScenarioDamageRiskCase2TestCase(risk.BaseRiskQATestCase):
-    output_type = "gmf_scenario"
+    output_type = "gmf"
 
     EXPECTED_DMG_DIST_PER_ASSET = '''<?xml version='1.0' encoding='UTF-8'?>
 <nrml xmlns:gml="http://www.opengis.net/gml"

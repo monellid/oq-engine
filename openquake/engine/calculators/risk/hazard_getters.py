@@ -298,23 +298,26 @@ ORDER BY exp.id, ST_Distance(exp.site, hsite.location, false)
         populate the .epsilons_shape dictionary.
         """
         num_assets = len(self.asset_ids)
+        ses_collections = []
         if self.hc.calculation_mode == 'event_based':
             lt_model_ids = set(ho.output_container.lt_realization.lt_model.id
                                for ho in hazard_outputs)
             for lt_model_id in lt_model_ids:
-                ses_coll = models.SESCollection.objects.get(
-                    lt_model=lt_model_id)
-                if self.epsilons_management == 'full':
-                    samples = ses_coll.get_ruptures().count()
-                else:
-                    samples = 1
-                self.epsilons_shape[ses_coll.id] = (num_assets, samples)
+                ses_collections.append(
+                    models.SESCollection.objects.get(lt_model=lt_model_id))
         elif self.hc.calculation_mode == 'scenario':
-                if self.epsilons_management == 'full':
-                    samples = self.hc.number_of_ground_motion_fields
-                else:
-                    samples = 1
-                self.epsilons_shape[0] = (num_assets, samples)
+            ses_collections.append(
+                models.SESCollection.objects.get(
+                    output__oq_job=hazard_outputs[0].oq_job,
+                    output__output_type='ses'))
+
+        for ses_coll in ses_collections:
+            if self.epsilons_management == 'full':
+                samples = ses_coll.get_ruptures().count()
+            else:
+                samples = 1
+            self.epsilons_shape[ses_coll.id] = (num_assets, samples)
+
         if self.epsilons_management == 'fast' and self.epsilons_shape:
             # size of the correlation matrix
             return num_assets * num_assets * BYTES_PER_FLOAT
@@ -332,25 +335,27 @@ ORDER BY exp.id, ST_Distance(exp.site, hsite.location, false)
         If the hazard_outputs come from an event based or scenario computation,
         populate the .epsilons and the .rupture_ids dictionaries.
         """
+        ses_collections = []
         if not self.epsilons_shape:
             self.calc_nbytes(hazard_outputs)
         if self.hc.calculation_mode == 'event_based':
             lt_model_ids = set(ho.output_container.lt_realization.lt_model.id
                                for ho in hazard_outputs)
             for lt_model_id in lt_model_ids:
-                ses_coll = models.SESCollection.objects.get(
-                    lt_model=lt_model_id)
-                scid = ses_coll.id
-                self.rupture_ids[scid] = ses_coll.get_ruptures(
-                    ).values_list('id', flat=True)
-                self.epsilons[scid] = make_epsilons(
-                    len(self.asset_ids), len(self.rupture_ids[scid]),
-                    self.rc.master_seed, self.rc.asset_correlation,
-                    self.epsilons_management)
+                ses_collections.append(models.SESCollection.objects.get(
+                    lt_model=lt_model_id))
         elif self.hc.calculation_mode == 'scenario':
-            self.rupture_ids[0] = []
-            self.epsilons[0] = make_epsilons(
-                len(self.asset_ids), self.hc.number_of_ground_motion_fields,
+            ses_collections.append(
+                models.SESCollection.objects.get(
+                    output__oq_job=hazard_outputs[0].oq_job,
+                    output__output_type='ses'))
+
+        for ses_coll in ses_collections:
+            scid = ses_coll.id
+            self.rupture_ids[scid] = ses_coll.get_ruptures(
+                ).values_list('id', flat=True)
+            self.epsilons[scid] = make_epsilons(
+                len(self.asset_ids), len(self.rupture_ids[scid]),
                 self.rc.master_seed, self.rc.asset_correlation,
                 self.epsilons_management)
 
@@ -413,7 +418,8 @@ ORDER BY exp.id, ST_Distance(exp.site, hsite.location, false)
                 getter.rupture_ids = self.rupture_ids[ses_coll_id]
                 getter.epsilons = self.epsilons[ses_coll_id][indices]
             elif self.hc.calculation_mode == 'scenario':
-                getter.num_samples = self.epsilons_shape[0][1]
-                getter.epsilons = self.epsilons[0][indices]
+                [(ses_coll_id, rupture_ids)] = self.rupture_ids.items()
+                getter.rupture_ids = rupture_ids
+                getter.epsilons = self.epsilons[ses_coll_id][indices]
             getters.append(getter)
         return getters

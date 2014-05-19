@@ -105,13 +105,13 @@ class ScenarioGetterTestCase(GroundMotionValuesGetterTestCase):
 
     hazard_demo = get_data_path('scenario_hazard/job.ini')
     risk_demo = get_data_path('scenario_risk/job.ini')
-    hazard_output_type = 'gmf_scenario'
-    getter_class = hazard_getters.ScenarioGetter
+    hazard_output_type = 'gmf'
+    getter_class = hazard_getters.GroundMotionValuesGetter
     taxonomy = 'RM'
 
     def test_nbytes(self):
         # 10 realizations * 1 asset
-        self.assertEqual(self.getter.num_samples, 10)
+        self.assertEqual(len(self.getter.rupture_ids), 10)
         self.assertEqual(self.nbytes, 80)
 
     def test_call(self):

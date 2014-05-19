@@ -519,6 +519,7 @@ def create_gmf_from_csv(job, fname):
             job, "Test SES Collection", "ses"),
         lt_model=gmf.lt_realization.lt_model,
         ordinal=0)
+
     with open(fname, 'rb') as csvfile:
         gmfreader = csv.reader(csvfile, delimiter=',')
         locations = gmfreader.next()
@@ -534,45 +535,14 @@ def create_gmf_from_csv(job, fname):
             models.GmfData.objects.create(
                 gmf=gmf,
                 task_no=0,
-                imt="PGA", gmvs=gmvs,
+                imt="PGA",
+                gmvs=gmvs,
                 rupture_ids=[r.id for r in ruptures],
                 site_id=site_id)
 
     return gmf
 
-
-def populate_gmf_data_from_csv(job, fname):
-    """
-    Populate the gmf_data table for a scenario calculation.
-    """
-    # tricks to fool the oqtask decorator
-    job.is_running = True
-    job.status = 'post_processing'
-    job.save()
-
-    gmf = models.Gmf.objects.create(
-        output=models.Output.objects.create_output(
-            job, "Test Hazard output", "gmf_scenario"))
-
-    with open(fname, 'rb') as csvfile:
-        gmfreader = csv.reader(csvfile, delimiter=',')
-        locations = gmfreader.next()
-
-        gmv_matrix = numpy.array(
-            [map(float, row) for row in gmfreader]).transpose()
-
-        for i, gmvs in enumerate(gmv_matrix):
-            point = tuple(map(float, locations[i].split()))
-            [site_id] = job.hazard_calculation.save_sites([point])
-            models.GmfData.objects.create(
-                task_no=0,
-                imt="PGA",
-                gmf=gmf,
-                gmvs=gmvs,
-                site_id=site_id)
-
-    return gmf
-
+populate_gmf_data_from_csv = create_gmf_from_csv
 
 def get_fake_risk_job(risk_cfg, hazard_cfg, output_type="curve",
                       username="openquake"):
@@ -585,7 +555,7 @@ def get_fake_risk_job(risk_cfg, hazard_cfg, output_type="curve",
     object for a risk calculation. It also returns the input files
     referenced by the risk config file.
 
-    :param output_type: gmf, gmf_scenario, or curve
+    :param output_type: gmf or curve
     """
 
     hazard_job = get_job(hazard_cfg, username)
@@ -622,10 +592,18 @@ def get_fake_risk_job(risk_cfg, hazard_cfg, output_type="curve",
                 poes=[0.1, 0.2, 0.3],
                 location="%s" % point)
 
-    elif output_type == "gmf_scenario":
+    elif output_type == "gmf":
+        output = models.Output.objects.create(
+            oq_job=hazard_job,
+            display_name='Test SES Collection',
+            output_type='ses')
+
+        models.SESCollection.objects.create(
+            output=output, lt_model=None, ordinal=0)
+
         hazard_output = models.Gmf.objects.create(
             output=models.Output.objects.create_output(
-                hazard_job, "Test gmf scenario output", "gmf_scenario"))
+                hazard_job, "Test gmf scenario output", "gmf"))
 
         site_ids = hazard_job.hazard_calculation.save_sites(
             [(15.48, 38.0900001), (15.565, 38.17), (15.481, 38.25)])
@@ -635,7 +613,8 @@ def get_fake_risk_job(risk_cfg, hazard_cfg, output_type="curve",
                 task_no=0,
                 imt="PGA",
                 site_id=site_id,
-                gmvs=[0.1, 0.2, 0.3])
+                gmvs=[0.1, 0.2, 0.3],
+                rupture_ids=[1, 2, 3])
 
     elif output_type in ("ses", "gmf"):
         hazard_output = create_gmf_data_records(hazard_job, rlz)[0].gmf

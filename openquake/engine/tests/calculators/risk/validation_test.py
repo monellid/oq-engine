@@ -154,7 +154,7 @@ class RequireScenarioHazardTestCase(unittest.TestCase):
                           "is not a scenario calculation"), val.get_error())
 
         calc.rc.hazard_calculation = None
-        calc.rc.hazard_output.output_type = "gmf_scenario"
+        calc.rc.hazard_output.output_type = "gmf"
         self.assertIsNone(val.get_error())
 
         calc.rc.hazard_output.output_type = "gmf"
@@ -193,7 +193,7 @@ class RequireEventBasedHazardTestCase(unittest.TestCase):
         calc.rc.hazard_output.output_type = "ses"
         self.assertIsNone(val.get_error())
 
-        calc.rc.hazard_output.output_type = "gmf_scenario"
+        calc.rc.hazard_output.output_type = "gmf"
         self.assertEqual(("The provided hazard is not a "
                           "gmf or ses collection"),
                          val.get_error())

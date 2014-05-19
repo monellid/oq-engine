@@ -53,10 +53,14 @@ def import_gmf_scenario(fileobj):
     )
     # XXX: probably the maximum_distance should be entered by the user
 
+    models.SESCollection.objects.create(
+        lt_model=None, ordinal=0, output=models.Output.objects.create(
+            oq_job=job, display_name='SES Collection', output_type='ses'))
+
     out = models.Output.objects.create(
         oq_job=job,
         display_name='Imported from %r' % fname,
-        output_type='gmf_scenario')
+        output_type='gmf')
 
     gmf_coll = models.Gmf.objects.create(output=out)
 

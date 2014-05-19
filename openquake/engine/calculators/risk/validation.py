@@ -127,7 +127,7 @@ class RequireScenarioHazard(Validator):
             if rc.hazard_calculation.calculation_mode != "scenario":
                 return ("The provided hazard calculation ID "
                         "is not a scenario calculation")
-        elif not rc.hazard_output.output_type == "gmf_scenario":
+        elif not rc.hazard_output.output_type == "gmf":
             return "The provided hazard is not a gmf scenario collection"
 
 

@@ -21,7 +21,7 @@ from openquake.engine.db import models
 
 
 class ScenarioRiskCase2TestCase(risk.BaseRiskQATestCase):
-    output_type = "gmf_scenario"
+    output_type = "gmf"
 
     @attr('qa', 'risk', 'scenario')
     def test(self):
@@ -32,7 +32,7 @@ class ScenarioRiskCase2TestCase(risk.BaseRiskQATestCase):
             helpers.get_data_path("scenario_hazard/job.ini"))
         fname = self._test_path('gmf_scenario.csv')
         helpers.populate_gmf_data_from_csv(job, fname)
-        # this is needed to make happy the GetterBuilder
+        # for consistency
         job.hazard_calculation.number_of_ground_motion_fields = 1000
         job.hazard_calculation.save()
         return job

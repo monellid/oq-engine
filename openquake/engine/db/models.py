@@ -1055,7 +1055,7 @@ class RiskCalculation(djm.Model):
                 filters = dict(
                     output_type='gmf', gmf__lt_realization__isnull=False)
             elif self.calculation_mode in ['scenario', 'scenario_damage']:
-                filters = dict(output_type='gmf_scenario')
+                filters = dict(output_type='gmf')
             else:
                 raise NotImplementedError
 
@@ -1224,7 +1224,6 @@ class Output(djm.Model):
     HAZARD_OUTPUT_TYPE_CHOICES = (
         (u'disagg_matrix', u'Disaggregation Matrix'),
         (u'gmf', u'Ground Motion Field'),
-        (u'gmf_scenario', u'Ground Motion Field'),
         (u'hazard_curve', u'Hazard Curve'),
         (u'hazard_curve_multi', u'Hazard Curve (multiple imts)'),
         (u'hazard_map', u'Hazard Map'),
@@ -1273,7 +1272,7 @@ class Output(djm.Model):
             return self.loss_curve
         elif self.output_type == 'hazard_curve_multi':
             return self.hazard_curve
-        elif self.output_type == 'gmf_scenario':
+        elif self.output_type == 'gmf':
             return self.gmf
         return getattr(self, self.output_type)
 
@@ -1565,7 +1564,7 @@ class SESCollection(djm.Model):
 
     def get_ruptures(self):
         """Return the SESRuptures associated to self"""
-        return SESRupture.objects.filter(rupture__ses_collection=self)
+        return SESRupture.objects.filter(rupture__ses_collection=self.id)
 
     @property
     def sm_lt_path(self):

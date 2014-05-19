@@ -144,7 +144,7 @@ def _get_result_export_dest(calc_id, target, result, file_ext='xml'):
                 filename = '%s-smltp_%s-gsimltp_%s.%s' % (
                     output_type, sm_ltp, gsim_ltp, file_ext
                 )
-    elif output_type == 'gmf':
+    elif output_type == 'gmf' and hasattr(result, 'lt_realization'):
         # only logic trees, no stats
         ltr = result.lt_realization
         sm_ltp = core.LT_PATH_JOIN_TOKEN.join(ltr.sm_lt_path)
@@ -159,6 +159,10 @@ def _get_result_export_dest(calc_id, target, result, file_ext='xml'):
             filename = '%s-smltp_%s-gsimltp_%s.%s' % (
                 output_type, sm_ltp, gsim_ltp, file_ext
             )
+    elif output_type == 'gmf':  # scenario
+        filename = '%s_scenario.%s' % (
+            output_type, file_ext
+        )
     elif output_type == 'ses':
         sm_ltp = core.LT_PATH_JOIN_TOKEN.join(result.sm_lt_path)
         filename = '%s-smltp_%s.%s' % (
@@ -317,41 +321,16 @@ def export_gmf_xml(output, target):
         The same return value as defined by :func:`export`.
     """
     gmf_coll = models.Gmf.objects.get(output=output.id)
-    lt_rlz = gmf_coll.lt_realization
     haz_calc = output.oq_job.hazard_calculation
-
-    sm_lt_path = core.LT_PATH_JOIN_TOKEN.join(lt_rlz.sm_lt_path)
-    gsim_lt_path = core.LT_PATH_JOIN_TOKEN.join(lt_rlz.gsim_lt_path)
-
+    if hasattr(gmf_coll, 'lt_realization'):  # event based
+        lt_rlz = gmf_coll.lt_realization
+        sm_lt_path = core.LT_PATH_JOIN_TOKEN.join(lt_rlz.sm_lt_path)
+        gsim_lt_path = core.LT_PATH_JOIN_TOKEN.join(lt_rlz.gsim_lt_path)
+    else:  # scenario
+        sm_lt_path, gsim_lt_path = '', ''
     dest = _get_result_export_dest(haz_calc.id, target, output.gmf)
-
-    writer = writers.EventBasedGMFXMLWriter(
-        dest, sm_lt_path, gsim_lt_path)
-
+    writer = writers.EventBasedGMFXMLWriter(dest, sm_lt_path, gsim_lt_path)
     writer.serialize(gmf_coll)
-
-    return dest
-
-
-@core.makedirsdeco
-def export_gmf_scenario_xml(output, target):
-    """
-    Export the GMFs specified by ``output`` to the ``target``.
-
-    :param output:
-        :class:`openquake.engine.db.models.Output`
-        with an `output_type` of `gmf_scenario`.
-    :param target:
-        The same ``target`` as :func:`export`.
-
-    :returns:
-        The same return value as defined by :func:`export`.
-    """
-    haz_calc = output.oq_job.hazard_calculation
-    dest = _get_result_export_dest(haz_calc.id, target, output.gmf)
-    gmfs = models.get_gmfs_scenario(output)
-    writer = writers.ScenarioGMFXMLWriter(dest)
-    writer.serialize(gmfs)
     return dest
 
 

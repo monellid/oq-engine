@@ -30,7 +30,7 @@ class ScenarioRiskCalculatorTestCase(base_test.BaseRiskCalculatorTestCase):
         self.job, _ = helpers.get_fake_risk_job(
             get_data_path('scenario_risk/job.ini'),
             get_data_path('scenario_hazard/job.ini'),
-            output_type="gmf_scenario")
+            output_type="gmf")
 
         self.calculator = scenario.ScenarioRiskCalculator(self.job)
         models.JobStats.objects.create(oq_job=self.job)

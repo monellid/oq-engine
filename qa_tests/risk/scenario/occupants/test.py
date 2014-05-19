@@ -19,7 +19,7 @@ from qa_tests import risk
 
 
 class ScenarioOccupantsQATestCase1(risk.FixtureBasedQATestCase):
-    output_type = "gmf_scenario"
+    output_type = "gmf"
     hazard_calculation_fixture = 'Scenario QA Test for occupants'
 
     @noseattr('qa', 'risk', 'scenario')

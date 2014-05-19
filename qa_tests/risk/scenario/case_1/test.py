@@ -22,7 +22,7 @@ from openquake.engine.tools.import_gmf_scenario import import_gmf_scenario
 
 
 class ScenarioRiskCase1TestCase(risk.BaseRiskQATestCase):
-    output_type = "gmf_scenario"
+    output_type = "gmf"
 
     @attr('qa', 'risk', 'scenario')
     def test(self):
@@ -65,7 +65,7 @@ class ScenarioRiskCase1TestCase(risk.BaseRiskQATestCase):
 
 
 class ImportGmfScenarioTestCase(risk.BaseRiskQATestCase):
-    output_type = "gmf_scenario"
+    output_type = "gmf"
 
     @attr('qa', 'risk', 'scenario')
     def test(self):

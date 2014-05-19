@@ -26,7 +26,7 @@ class ScenarioDamageRiskCase3TestCase(risk.BaseRiskQATestCase):
     unknown taxonomy are simply ignored.
     """
 
-    output_type = "gmf_scenario"
+    output_type = "gmf"
 
     EXPECTED_DMG_DIST_PER_ASSET = '''<?xml version='1.0' encoding='UTF-8'?>
 <nrml xmlns:gml="http://www.opengis.net/gml"
